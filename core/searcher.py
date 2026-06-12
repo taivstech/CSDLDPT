@@ -166,12 +166,12 @@ class FishSearcher:
         return candidates
 
     def _fetch_metadata(self, top_k: list, metric: str = 'cosine') -> list:
-        """Tra cuu metadata tu SQLite theo Image_ID."""
+        """Tra cuu metadata tu SQLite theo ID (so nguyen)."""
         conn = get_connection()
         if not conn:
             return [
                 {
-                    'image_id': iid, 'distance': d,
+                    'id': iid, 'image_id': str(iid), 'distance': d,
                     'similarity': round(max(0.0, (1.0 - d) * 100), 2),
                     'species': 'N/A', 'file_path': ''
                 }
@@ -182,25 +182,26 @@ class FishSearcher:
         placeholders = ','.join(['?'] * len(top_ids))
         cursor = conn.cursor()
         cursor.execute(
-            f"SELECT Image_ID, Species_Label, File_Path FROM Fish_Metadata "
-            f"WHERE Image_ID IN ({placeholders})",
+            f"SELECT ID, Image_ID, Species_Label, File_Path FROM Fish_Metadata "
+            f"WHERE ID IN ({placeholders})",
             top_ids
         )
         rows     = cursor.fetchall()
-        db_data  = {row[0]: {'species': row[1], 'path': row[2]} for row in rows}
+        db_data  = {row[0]: {'image_id': row[1], 'species': row[2], 'path': row[3]} for row in rows}
         cursor.close()
         conn.close()
 
         results = []
-        for image_id, dist in top_k:
-            info = db_data.get(image_id, {'species': 'Unknown', 'path': ''})
+        for db_id, dist in top_k:
+            info = db_data.get(db_id, {'image_id': 'Unknown', 'species': 'Unknown', 'path': ''})
             # Tuong dong: cosine -> (1-dist)*100; euclidean/histogram: max(0, 100-dist*50)
             if metric == 'cosine':
                 similarity = max(0.0, (1.0 - dist) * 100)
             else:
                 similarity = max(0.0, 100.0 - dist * 50.0)
             results.append({
-                'image_id':   image_id,
+                'id':         db_id,
+                'image_id':   info['image_id'],
                 'distance':   round(dist, 6),
                 'similarity': round(similarity, 2),
                 'species':    info['species'],

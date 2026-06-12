@@ -93,11 +93,13 @@ def build_index():
 
         vector = get_image_features(file_path)
         if vector is not None:
-            features_dict[image_id] = vector
             cursor.execute("""
                 INSERT OR REPLACE INTO Fish_Metadata (Image_ID, Species_Label, File_Path)
                 VALUES (?, ?, ?)
             """, (image_id, species_label, file_path))
+            
+            db_id = cursor.lastrowid
+            features_dict[db_id] = vector
             total_ok += 1
         else:
             total_err += 1

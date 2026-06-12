@@ -26,11 +26,10 @@ def init_db():
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS Fish_Metadata (
-                    Image_ID    TEXT PRIMARY KEY,
+                    ID            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Image_ID      TEXT NOT NULL UNIQUE,
                     Species_Label TEXT NOT NULL,
-                    File_Path   TEXT NOT NULL,
-                    Width       INTEGER,
-                    Height      INTEGER
+                    File_Path     TEXT NOT NULL
                 )
             """)
             conn.commit()

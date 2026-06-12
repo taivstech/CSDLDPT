@@ -1,0 +1,12 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases
+database/*.db
+
+# Large features / pickle files
+database/features.pkl
+scratch/raw_features_cache.pkl
+*.pkl

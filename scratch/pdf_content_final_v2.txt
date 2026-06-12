@@ -1,0 +1,964 @@
+  
+ 
+            HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG 
+                              KHOA CÔNG NGHỆ THÔNG TIN 
+—------------------------ 
+ 
+BÁO CÁO BÀI TẬP LỚN 
+HỆ CSDL ĐA PHƯƠNG TIỆN 
+ĐỀ TÀI: XÂY DỰNG HỆ CSDL LƯU TRỮ VÀ 
+NHẬN DẠNG ẢNH CÁ 
+Nhóm lớp: 3 - Nhóm BTL: 16  
+Giảng viên: Nguyễn Đình Hóa 
+     Thành viên: Võ Sỹ Tài  ​
+​
+     - B22DCCN706 
+      Nguyễn Văn Đức         - B22DCCN236 
+      Nguyễn Tất Thắng       - B22DCCN814 
+ 
+    ​
+​
+Hà Nội - 2026 
+ 
+Mục lục 
+Mục lục--------------------------------------------------------------------------------------------2 
+Yêu cầu--------------------------------------------------------------------------------------------4 
+I. Xây dựng bộ dữ liệu ảnh cá---------------------------------------------------------------- 4 
+1. Nguồn dữ liệu--------------------------------------------------------------------------4 
+2. Hình ảnh--------------------------------------------------------------------------------5 
+II. Thuộc tính và kỹ thuật trích rút đặc trưng ảnh-------------------------------------- 6 
+1. Nhận xét về bộ dữ liệu:---------------------------------------------------------------6 
+2. Xây dựng bộ thuộc tính ảnh--------------------------------------------------------- 7 
+2.1. Thuộc tính sử dụng về hình dạng-----------------------------------------9 
+Thuật toán HOG (Histogram of Oriented Gradient)------------------------ 9 
+2.2. Thuộc tính sử dụng về màu sắc----------------------------------------- 12 
+2.3. Thuộc tính sử dụng về kết cấu-------------------------------------------17 
+2.4. Hu Moments — Đặc trưng hình dạng tổng thể bất biến------------- 18 
+2.5. Color Moments — Thống kê màu sắc ổn định------------------------19 
+3. Kết hợp vector đặc trưng (Feature Fusion)---------------------------------------21 
+Chương III: Lưu trữ và quản lý hệ CSDL----------------------------------------------- 24 
+1. Lưu trữ và quản lý siêu dữ liệu---------------------------------------------------- 24 
+2. Kĩ thuật phân loại, tìm kiếm ảnh---------------------------------------------------24 
+2.1. Phân cụm K-means + Inverted File Index (IVF)----------------------24 
+a. K-means------------------------------------------------------------------ 24 
+b. Inverted File Index (IVF)---------------------------------------------- 25 
+2.2. K-nearest neighbors (KNN)--------------------------------------------- 26 
+2.3. Truy xuất ảnh dựa trên nội dung (CBIR)------------------------------ 27 
+Chương IV: Xây dựng hệ thống nhận dạng và tìm kiếm ảnh------------------------ 29 
+1.Sơ đồ khối của hệ thống------------------------------------------------------------- 29 
+2.Quy trình thực hiện-------------------------------------------------------------------29 
+3.Các bước trung gian------------------------------------------------------------------30 
+3.1. Trích xuất hình ảnh đặc trưng------------------------------------------- 32 
+3.1.1. Tiền xử lí ảnh--------------------------------------------------------33 
+3.1.2. Trích xuất các đặc trưng ảnh-------------------------------------- 33 
+3.2. Phân cụm và đánh chỉ mục ngược-------------------------------------- 38 
+3.3. Tìm ảnh tương đồng------------------------------------------------------ 41 
+V. Kết quả kiểm nghiệm----------------------------------------------------------------------44 
+1. Kết quả quá trình tìm kiếm--------------------------------------------------------- 44 
+2. Đánh giá kết quả--------------------------------------------------------------------- 45 
+2. Đánh giá kết quả--------------------------------------------------------------------- 46 
+ 
+ 
+Yêu cầu 
+Xây dựng hệ CSDL lưu trữ và tìm kiếm ảnh cá. 
+1.Hãy xây dựng/sưu tầm một bộ dữ liệu ảnh gồm ít nhất 500 files ảnh về cá 
+khác nhau, các ảnh có cùng kích thước, mỗi ảnh có 1 con cá chụp ngang, cùng chiều, 
+vật trong ảnh có cùng kích thước và tỉ lệ khung hình (SV tùy chọn định dạng ảnh). 
+2.Hãy xây dựng một bộ thuộc tính để nhận diện ảnh cá từ bộ dữ liệu đã thu 
+thập (gồm các đặc trưng giúp thể hiện sự tương đồng và các đặc trưng thể hiện sự 
+khác nhau giữa các con cá trong các hình khác nhau). Hãy trình bày lý do lựa chọn và 
+giá trị thông tin của các thuộc tính được sử dụng trong bài. 
+3. Xây dựng hệ CSDL quản lý các siêu dữ liệu đã chọn, trình bày quy trình tìm 
+kiếm ảnh tương đồng dựa trên các siêu dữ liệu này. 
+4. Xây dựng hệ thống tìm kiếm ảnh với đầu vào là một ảnh mới về một con cá 
+nào đó thuộc loài đã có và không có trong dữ liệu, đầu ra là 5 ảnh giống nhất, xếp thứ 
+tự giảm dần về độ tương đồng nội dung với ảnh đầu vào. 
+a.Trình bày sơ đồ khối của hệ thống và quy trình thực hiện yêu cầu của đề bài. 
+b.Trình bày các kết quả trung gian trong quá trình tìm kiếm ảnh tương đồng nói 
+trên. 
+5.Demo hệ thống và đánh giá kết quả đã đạt được. 
+ 
+I. Xây dựng bộ dữ liệu ảnh các 
+1. Nguồn dữ liệu 
+- Miêu tả bộ dữ liệu: Nhóm thu thập bộ dữ liệu gồm tổng cộng 2.471 ảnh cá, bao gồm 
+467 loài cá khác nhau, được lấy từ tập dataset: QUT Fish Dataset | Roboflow 
+Universe.Phát triển bởi Trung tâm Robot học (Centre for Robotics) thuộc Đại học 
+Công nghệ Queensland (QUT), Úc. 
+Link: Fish_Dataset  
+Bộ dữ liệu bao gồm 467 loài cá, được phân loại theo tên khoa học Latinh . 
+Kích thước của mỗi ảnh là 512 x 512.​
+Định dạng tệp hình ảnh là “*.jpg”. 
+- Các ảnh cá cùng loại được chụp ở cùng góc chụp ngang,cùng hướng sang trái. 
+2. Hình ảnh 
+Hình ảnh về một số loài cụ thể như: 
+- Pseudorhombus arsius : 
+ 
+- Acanthistius cinctus: 
+ 
+- Acanthopagrus berda : 
+ 
+- Halichoeres chrysus  
+ 
+Aluterus scriptus  
+ 
+Caranx melampygus  
+ 
+Paraluteres prionurus  
+ 
+Oxymonacanthus longirostris  
+ 
+Lutjanus sebae  
+ 
+ 
+II. Thuộc tính và kỹ thuật trích rút đặc trưng ảnh 
+1. Nhận xét về bộ dữ liệu: 
+- Mỗi bức ảnh chỉ có một con cá, vật thể cá chiếm diện tích chủ đạo trong 
+khung hình được chụp trong môi trường tự nhiên (san hô, đại dương, cát biển, nền 
+đen, nền trắng...). 
+- Kích thước ảnh sau khi resize: 224 * 224 pixel, định dạng “.jpg”. 
+- Các ảnh cá được chụp theo hướng ngang dọc theo thân, giúp hệ thống có thể 
+nắm bắt rõ toàn bộ biên dạng, cấu trúc vây và đuôi cá. Bề mặt thân cá rất phong phú: 
+có loài da trơn, có loài vảy rõ nét, và nhiều loài sở hữu các hoa văn, vằn vện hoặc đốm 
+màu phức tạp. 
+- Thách thức chính của bộ dữ liệu: 
++​ Background đa dạng: Ảnh cá có nền phức tạp: san hô, rong biển, cát, 
+nước tối… 
++​ Phân bố lớp không đều (class imbalance): có những loài chỉ có 1 
+ảnh(acantha luteres brownii), loài nhiều nhất có 20 ảnh (caranx 
+melampygus). 
++​ Màu sắc đa dạng nhưng thay đổi theo ánh sáng môi trường nước: Phân 
+tích thực nghiệm cho thấy độ lệch chuẩn Hue (Hue std) thấp, từ 6 đến 
+51, cho thấy màu sắc dễ bị ảnh hưởng bởi chiếu sáng dưới nước. Do đó, 
+Color Moments (thống kê phân phối màu) ổn định hơn HSV Histogram 
+thuần túy. 
++​ Vảy cá có kết cấu phức tạp: Giá trị Laplacian Variance đo được từ 80 
+đến 2.303, xác nhận bề mặt vảy cá rất phong phú về chi tiết → LBP bắt 
+được thông tin kết cấu tốt. 
++​ Tỉ lệ chiều rộng/chiều cao (w/h ratio) dao động lớn: từ 0,31 đến 2,43, 
+phản ánh các tư thế bơi nghiêng, nằm ngang, góc chụp khác nhau → cần 
+Hu Moments để xử lý bất biến hình học. 
+=> Do đó, hướng trích rút tập trung áp dụng kết hợp 5 đặc trưng đồng thời: hình 
+dáng (HOG), màu sắc (HSV), kết cấu bề mặt (LBP), Momen màu(Color 
+moment), hình dáng tổng thể bất biến (Hu Moments) 
+2. Xây dựng bộ thuộc tính ảnh 
+Mắt người phân biệt các loài cá dựa vào ba yếu tố chính: hình dạng thân cá, 
+màu sắc vây/hoa văn, và kết cấu vảy. Do đó, hệ thống sử dụng tổ hợp 5 đặc trưng: 
+ 
+ 
+Đặc trưng 
+Chiều 
+Trọng số (α) 
+Mục đích 
+HOG 
+6.084 
+0.75 
+Hình dạng / đường 
+viền cá. 
+HSV Histogram 
+1.024 
+0.08 
+Màu sắc vây, thân 
+cá 
+LBP 
+256 
+0.07 
+Kết cấu vảy, bề 
+mặt da 
+Hu Moments 
+7 
+0.05 
+Hình dạng tổng 
+thể, bất biến 
+xoay/scale 
+Color Moments 
+9 
+0.05 
+Thống kê màu ổn 
+định 
+(mean/std/skewnes
+s) 
+Tổng 
+7.380 
+1.00 
+ 
+ 
+* Trọng số được chọn sau khi thực hiện thuật toán GRID SEARCH: 
+ 
+2.1. Thuộc tính sử dụng về hình dạng 
+Thuật toán HOG (Histogram of Oriented Gradient) 
+ ​
+HOG là thuật toán mô tả hình dạng và đường viền đối tượng dựa trên phân 
+phối của các cường độ gradient (intensity gradient) và hướng biên (edge directions) 
+trong ảnh. HOG chia hình ảnh thành các ô vuông nhỏ (cell), tính histogram gradient 
+cho từng cell, sau đó chuẩn hóa theo block để tăng tính bất biến với ánh sáng. 
+Lý do lựa chọn: Hình dạng thân cá (dài-dẹt, bầu tròn, hình thoi…) và cấu trúc 
+hệ vây (vây lưng cao sắc nhọn, vây đuôi chẻ chữ V…) là đặc trưng sinh học quan 
+trọng nhất để phân biệt các loài cá. HOG đặc biệt mạnh trong việc bắt các "đường 
+viền" này mà không bị ảnh hưởng bởi sự thay đổi màu sắc của background, rất phù 
+hợp với bộ dữ liệu cá có nền phức tạp. Phân tích thực nghiệm của nhóm cho thấy, nếu 
+sử dụng cell 8x8, HOG sẽ soi xét quá chi tiết vào từng chiếc vảy cá, khiến mô hình bị 
+nhiễu. Bằng cách tăng kích thước cell lên 16x16, HOG sẽ bỏ qua các tiểu tiết để tập 
+trung phác họa hình dáng tổng thể của cá.. 
+Trình tự 5 bước xây dựng HOG cho ảnh: 
+- Tiền xử lý 
+- Tính gradient 
+- Tính vector đặc trưng cho từng ô (cells) 
+- Chuẩn hóa khối (blocks) 
+- Tính toán vector HOG 
+Bước 1: Tiền xử lý  
+Thuật toán HOG tập trung vào cấu trúc hình học (đường nét, góc cạnh) thay vì 
+màu sắc. Do đó, ảnh màu RGB kích thước 224 x 224  sẽ được chuyển thành ảnh xám 
+(Grayscale). 
+Phép toán: Với mỗi pixel có giá trị màu (R, G, B), cường độ sáng xám Y được 
+tính bằng công thức: Y = 0,299 × R + 0,587 × G + 0,114 × B 
+ 
+Bước 2: Tính gradient 
+Phương pháp sẽ lọc ma trận cường độ ảnh với các bộ lọc Sobel mask. Thực hiện hai 
+phép nhân chập (convolution) ảnh gốc với 2 ma trận kernel (quét qua từng pixel trong 
+ảnh xám), tương ứng với các toán tử lấy đạo hàm theo hai hướng Ox và Oy: 
+-​
+Kernel ngang (tính đạo hàm theo trục x): Dx = [-1, 0, 1] 
+-​
+Kernel dọc (tính đạo hàm theo trục y): Dy = [-1, 0, 1]^T 
+Nếu có một ảnh input là I, ta sẽ có 2 ảnh đạo hàm riêng theo 2 hướng đó: Gx = I * Dx 
+và Gy = I * Dy. Giá trị độ lớn (Magnitude) và phương (Direction) gradient được tính 
+theo công thức: 
+-​
+Độ lớn: G = √(Gx² + Gy²) 
+-​
+Phương gradient: θ = arctan(Gy / Gx) 
+Từ đây, mỗi điểm ảnh được đặc trưng bởi mức độ thay đổi cường độ và hướng của 
+bóng đổ. 
+ 
+Hình 3. Gradient magnitude biểu diễn độ lớn và hướng Gradient làm nổi bật đường 
+viền thân cá.  
+Bước 3: Tính vector đặc trưng cho từng ô (cells) 
+-​
+Ảnh 224x224 được chia thành các ô nhỏ (cell) kích thước 16x16 pixel để phân 
+tích cục bộ. Số lượng cell thu được là (224 / 16) * (224 / 16) = 14 * 14 = 196 
+cells. Mỗi cell chứa 256 pixels. Tại mỗi cell, một biểu đồ Histogram gồm 9 
+bins (0 đến 180 độ, mỗi bin rộng 20 độ) được thiết lập. Hệ thống ánh xạ độ lớn 
+gradient của mỗi pixel vào các bins tương ứng của phương gradient.  
+-​
+Trong trường hợp giá trị phương gradient rơi vào giữa hai đầu mút của bin, hệ 
+thống sử dụng thuật toán nội suy tuyến tính (linear interpolation) để chia sẻ độ 
+lớn gradient cho 2 bins liền kề nhằm giảm thiểu hiệu ứng răng cưa (aliasing). 
+Cụ thể, nếu phương gradient x ∈ [x0, x1] (rơi vào giữa bin i-1 và bin i) với 
+cường độ y, giá trị được chia như sau: 
++​ Giá trị cộng vào bin (i-1) = y * [(x1 - x) / (x1 - x0)] 
++​ Giá trị cộng vào bin i = y * [(x - x0) / (x1 - x0)] 
+Bước 4: Chuẩn hóa khối (blocks) 
+-​
+Để thuật toán miễn nhiễm với những thay đổi về độ chiếu sáng (ảnh cá chụp sát 
+mặt nước sáng hơn ảnh chụp dưới đáy sâu), hệ thống nhóm các cell lại thành 
+các block. Nhóm sử dụng cấu hình block 2x2 cells (tức 32x32 pixel). Mỗi 
+block chứa 4 cells, mỗi cell có 9 bins, tạo thành một vector tổng hợp kích thước 
+1x36. Hệ thống chuẩn hóa vector này theo chuẩn L2-Hys (chia cho căn bậc hai 
+của tổng bình phương các phần tử): 
++​ V_norm = v / √(||v||₂² + ε) 
+Bước 5: Tính toán vector HOG 
+Với việc trượt (stride) mỗi lần 1 cell, số lượng block trên bức ảnh 14x14 cells là:  
+SizeImage = N * Sizeblock = (14 - 2 + 1) * (14 - 2 + 1) = 13 * 13 = 169 blocks. 
+Chiều dài Vector HOG của bức ảnh cá: 169 blocks * 36 chiều / block = 6.084 (chiều). 
+ 
+Hình 4. Ảnh đặc trưng HOG  
+2.2. Thuộc tính sử dụng về màu sắc 
+- Color Histogram thống kê phân phối màu sắc của ảnh bằng cách chia không gian 
+màu thành các bins rời rạc và đếm số pixel rơi vào từng bin. 
+- Lý do chọn không gian màu HSV thay vì RGB:  
+-​
+Hệ màu HSV tách biệt thông tin màu sắc (Hue), độ bão hòa (Saturation), và độ 
+sáng (Value) → ổn định hơn RGB khi ánh sáng môi trường nước thay đổi. 
+-​
+Hue mô tả màu gì (đỏ, vàng, xanh...) — đặc trưng của từng loài cá. 
+-​
+Saturation mô tả độ tươi của màu. 
+-​
+Value mô tả độ sáng. 
+- Ảnh cá có background đa dạng (san hô, đại dương…) mà màu nền thường rất khác 
+với màu thân cá. Do đó, hệ thống dùng toàn bộ ảnh mà không cần tạo mask — tránh 
+lỗi tách nền sai trên các background phức tạp. 
+Bước 1: Chuyển đổi không gian màu (từ RGB => HSV) 
+Hệ thống sử dụng các công thức biến đổi phi tuyến tính để ánh xạ từng điểm 
+ảnh từ R, G, B sang dải giá trị H, S, V theo công thức: 
+ 
+Các giá trị R, G, B được chia cho 255 để chuyển dải giá trị từ 0..255 sang 0..1: 
+ 
+𝑅' =  𝑅/255 
+ 
+𝐺' =  𝐺/255
+ 
+𝐵' =  𝐵/255
+ 
+𝐶𝑚𝑎𝑥 =  𝑚𝑎𝑥(𝑅', 𝐺', 𝐵')
+ 
+𝐶𝑚𝑖𝑛 =  𝑚𝑖𝑛 (𝑅', 𝐺', 𝐵')
+ 
+∆= 𝐶𝑚𝑎𝑥−𝐶𝑚𝑖𝑛
+Tính giá trị H: 
+Công thức 
+Điều kiện 
+ 
+𝐻 = 60
+\𝑐𝑖𝑟   
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Áp dụng công thức trên ta được kết quả: 
+ 
+Hình 5. Chuyển đổi sang HSV 
+Bước 2 — Lượng tử hóa (Binning): 
+Chia không gian HSV thành bins rời rạc theo tỉ lệ (H:16, S:8, V:8) → Số chiều: 
+16 × 8 × 8 = 1.024 chiều. 
+Cấu hình bins này tập trung độ phân giải cao nhất vào kênh H (Hue) để phân 
+biệt các dải màu tinh tế (đỏ/cam/vàng — màu sắc đặc trưng nhiều loài cá rạn san hô). 
+Kênh S và V được nén nhẹ để giảm nhiễu ánh sáng. 
+Bước 3: Tính histogram và chuẩn hóa L1: 
+ 
+Kết quả: Vector 1.024 chiều, tổng = 1,0 (phân phối xác suất màu sắc). 
+Sự khác nhau trên bản đồ nhiệt kênh màu giữa Caranx Melampygus và Cantherhines 
+Pardalis: 
+ 
+Hình 6. So sánh biểu đồ phân bố tần suất (HSV Hue Histogram) tương ứng. Sự lệch 
+pha hoàn toàn của các đỉnh đồ thị minh chứng cho khả năng bóc tách và phân loại 
+màu sắc cực kỳ chính xác của thuật toán trước các loài cá có màu sắc đối lập. 
+ 
+Hình 7. Đối chiếu bản đồ nhiệt kênh màu (Hue Map) giữa loài Caranx Melampygus 
+(trái) và Cantherhines Pardalis (phải). Dễ dàng nhận thấy tín hiệu màu bị phân hóa 
+rõ rệt trên thanh đo cường độ (0-179). 
+Bước 4: Tính toán lược đồ màu (Histogram Calculation) 
+-​
+Lược đồ h tại một bin có tọa độ (i, j, k) được tính bằng tổng số pixel thỏa mãn 
+điều kiện màu sắc sau khi quét qua toàn bộ bin: 
+ 
+Bước 5: Chuẩn hóa vector (L1 Normalization) 
+Do kích thước con cá trong các bức ảnh có thể to nhỏ khác nhau, để so sánh 
+công bằng, ta phải chuyển số đếm (pixel count) thành tỷ lệ phần trăm (phân bố xác 
+suất). Nên ta có công thức chuẩn hóa: v_norm = h / ||h||₁ = h / Σ|hᵢ| 
+Trong đó: ||h||₁ = tổng giá trị tuyệt đối tất cả các phần tử của v 
+(Đảm bảo tổng tất cả các phần tử trong vector bằng 1). 
+​
+Kết quả: Đầu ra là một mảng 1 chiều (Vector) gồm 1024 số thực có  
+giá trị từ 0 đến 1. 
+ 
+Hình 8. HSV Color Histogram 
+2.3. Thuộc tính sử dụng về kết cấu 
+       Local Binary Patterns (LBP) 
+LBP là toán tử gán nhãn cho mỗi pixel bằng cách so sánh nó với các pixel lân cận và 
+mã hóa kết quả thành số nhị phân. LBP mô tả kết cấu cục bộ (micro-texture) của bề 
+mặt ảnh. 
+Lý do chọn LBP: Phân tích thực nghiệm cho thấy Laplacian Variance của ảnh cá đạt 
+tới 2.303 (rất cao), chứng tỏ vảy cá có kết cấu bề mặt rất phức tạp và phong phú. LBP 
+bắt được thông tin vân vảy, hoa văn da, và kết cấu cục bộ mà HOG và HSV bỏ qua. 
+Quy tắc tính LBP: 
+-​
+Với mỗi pixel trung tâm, xét vòng láng giềng bán kính r = 1 (8 pixel xung 
+quanh, n_points = 8). 
+-​
+So sánh từng pixel láng giềng với pixel trung tâm: gán 1 nếu ≥ trung tâm, gán 0 
+nếu ngược lại. 
+-​
+Thay thế pixel trung tâm bằng giá trị thập phân đó. 
+ 
+Hình 9. Khắc họa kết cấu bề mặt vảy cá bằng LBP 
+Tính histogram LBP: Sau khi tính LBP cho toàn bộ ảnh xám, tính histogram với 256 
+bins (tương ứng giá trị 0–255), chuẩn hóa L1. 
+ 
+Kết quả: Vector 256 chiều, giá trị trong [0, 1]. 
+ 
+​
+​
+​
+​
+​
+Hình 10. LBP Histogram 
+Ưu điểm: 
+-​
+Đơn giản, chi phí tính toán thấp. 
+-​
+Bất biến với thay đổi độ sáng (chỉ so sánh tương đối giữa các pixel).\ 
+Nhược điểm: 
+-​
+Không bất biến với phép xoay. 
+-​
+Chỉ nắm bắt cấu trúc cục bộ 3×3 (không xử lý được cấu trúc vĩ mô). 
+2.4. Hu Moments — Đặc trưng hình dạng tổng thể bất biến 
+Hu Moments là tập hợp 7 mô-men ảnh bất biến với phép tịnh tiến, phép xoay 
+và thay đổi tỷ lệ. Chúng mô tả hình dạng tổng thể của đối tượng trong ảnh. 
+Lý do chọn Hu Moments: Phân tích thực nghiệm cho thấy tỉ lệ w/h (chiều rộng/chiều 
+cao) của cá dao động từ 0,31 đến 2,43, phản ánh nhiều tư thế bơi và góc chụp khác 
+nhau. Hu Moments xử lý được điều này nhờ tính bất biến với phép quay và tỷ lệ. 7 
+mô-men Hu (I₁ → I₇): 
+-​
+I₁: Độ bền vững về diện tích. 
+-​
+I₂ → I₇: Mô tả các đặc trưng phức tạp hơn: đối xứng, chiều dài, độ cong của 
+hình dạng. 
+Quy trình trích xuất: 
+ 
+Kết quả: Vector 7 chiều 
+ 
+Hình 11: 7 đặc trưng Hu Moments. Dù ảnh cá bị thay đổi tỷ lệ (Scale 50%) hay xoay 
+trục (Rotate 45°), các giá trị mô-men sau khi chuyển đổi Logarit vẫn giữ nguyên độ 
+lớn. Điều này giúp hệ thống nhận diện được cá dù chúng đang bơi ở các tư thế 
+nghiêng ngả khác nhau 
+2.5. Color Moments — Thống kê màu sắc ổn định 
+Color Moments mô tả phân phối màu sắc thông qua các mô-men thống kê 
+(mean, standard deviation, skewness) trên từng kênh màu HSV. 
+Lý do chọn Color Moments (bên cạnh HSV Histogram): 
+-​
+HSV Histogram mô tả tần suất màu (màu sắc, bao nhiêu pixel), nhưng dễ bị 
+ảnh hưởng bởi sự shift histogram khi ánh sáng môi trường nước thay đổi. 
+-​
+Color Moments nắm bắt thống kê tổng thể phân phối màu, ổn định hơn với 
+biến đổi ánh sáng. 
+Ví dụ thực nghiệm:  
+-​
+Loài Thalassoma lutescens luôn có H_mean ≈ 33–54 (vàng-xanh). 
+-​
+Loài Caranx melampygus có H/S/V rất khác → phân biệt được rõ ràng. 
+Công thức tính (cho mỗi kênh H, S, V): 
+ 
+Mô-men 
+Công thức 
+Ý nghĩa 
+Mean 
+μ = Σ(pᵢ)/N 
+Màu trung bình 
+Std 
+σ = √(Σ(pᵢ-μ)²/N) 
+Độ phân tán màu 
+Skewness 
+γ = Σ(pᵢ-μ)³ / (N·σ³) 
+Độ lệch phân phối 
+Kết quả: 3 kênh × 3 mô-men = 9 chiều, chuẩn hóa min-max về [0,1]. 
+ 
+Hình 12: Thực nghiệm đặc trưng Color Moments.  
+Mặc dù cường độ chiếu sáng khác nhau, hai cá thể thuộc loài Thalassoma lutescens 
+(cột vàng và cam) vẫn duy trì bộ 9 chỉ số thống kê màu sắc (Mean, Std, Skewness) gần 
+như đồng nhất, tạo ra khoảng cách vector khác biệt hoàn toàn so với loài Caranx 
+melampygus (cột xanh) 
+3. Kết hợp vector đặc trưng (Feature Fusion) 
+Do 5 vector đặc trưng có số chiều rất khác nhau (từ 7 đến 6.084 chiều), nếu chỉ 
+ghép nối thô, vector HOG sẽ áp đảo các đặc trưng còn lại khi tính khoảng cách. Hệ 
+thống sử dụng cơ chế Weighted Concatenation (nối có trọng số): 
+Bước 1 — Chuẩn hóa L2 từng vector thành phần 
+-​
+Đưa tất cả vector về cùng hệ quy chiếu: v_norm = v / (||v||₂ + ε) 
+Bước 2 — Gán trọng số (Weighted Scaling) 
+-​
+Nhân mỗi vector với trọng số tương ứng (xác định qua Grid Search): 
+V(Fusion) = 0.75*V'(HOG) ⊕ 0.08*V'(HSV) ⊕ 0.07*V'(LBP) ⊕ 0.05*V'(Hu) 
+⊕ 0.05*V'(CM) 
+Kết quả Grid Search: HOG chiếm trọng số lớn nhất (75%) vì hình dạng thân cá là 
+đặc trưng phân loại ổn định nhất trong bộ dữ liệu này. Màu sắc (HSV + Color 
+Moments = 13%) và kết cấu (LBP = 7%) đóng vai trò bổ trợ. 
+Bước 3 — Nối vector và chuẩn hóa tổng hợp 
+V(Fusion) = [0,75·V'(HOG)|0,08·V'(HSV)|0,07·V'(LBP)| 0,05·V'(Hu)| 0,05·V'(CM)] 
+Chiều tổng: 6.084 + 1.024 + 256 + 7 + 9 = 7.380 chiều. 
+ 
+Hình 13: Trực quan hóa không gian ma trận Vector đặc trưng của 2.471 ảnh bằng kỹ 
+thuật giảm chiều dữ liệu t-SNE. Các điểm cùng màu thể hiện các bức ảnh được thuật 
+toán K-Means phân vào cùng một cụm (Cluster). Sự hội tụ rõ nét của các dải màu 
+chứng minh 5 thuật toán trích xuất đặc trưng (HOG, HSV, LBP, Hu, Color Moments) 
+đã biểu diễn dữ liệu rất tốt, tạo tiền đề cho việc truy vấn KNN đạt độ chính xác cao 
+Chuẩn hóa L2 lần cuối để vector nằm trên mặt cầu đơn vị — tối ưu cho thuật toán đo 
+khoảng cách Cosine Similarity. 
+ 
+ 
+Hình 14: Quy trình Feature Fusion 
+Chương III: Lưu trữ và quản lý hệ CSDL 
+1. Lưu trữ và quản lý siêu dữ liệu 
+Để quản lý tập dữ liệu gồm nhiều ảnh cá, việc chỉ lưu trữ các file ảnh *.jpg trong 
+thư mục là không đủ để phục vụ truy vấn. Hệ thống cần một CSDL có cấu trúc để lưu 
+trữ các siêu dữ liệu (metadata) và các vector đặc trưng đã được trích xuất. 
+Hệ thống áp dụng mô hình lưu trữ kết hợp (hybrid storage) gồm hai thành phần: 
+CSDL quan hệ SQLite để quản lý siêu dữ liệu có cấu trúc, và hệ thống file vật lý 
+(Pickle) để lưu trữ các vector đặc trưng có kích thước lớn. 
+- Lưu trữ các file ảnh gốc *.png trong các thư mục được phân loại theo tên loài. 
+- Bảng Fish_Metadata trong SQLite lưu thông tin mô tả của từng ảnh cá: 
+Image_ID 
+Species_Label 
+File_Path 
+Width 
+Height 
+TEXT 
+(PK) 
+TEXT NOT 
+NULL 
+TEXT 
+NOT 
+NULL 
+INTEGER 
+INTEGER 
+ID ảnh (tên 
+file) 
+Nhãn loài cá 
+Đường dẫn 
+đầy đủ 
+Chiều rộng 
+Chiều cao 
+Khóa chính Image_ID là tên file cho phép liên kết trực tiếp với vector đặc trưng trong 
+tệp Pickle. 
+- Vector đặc trưng​
+ của mỗi ảnh được lưu trong tệp features.pkl theo định dạng 
+dictionary Python: {image_id: numpy_array}. Toàn bộ CSDL vector được nạp vào bộ 
+nhớ RAM khi khởi động hệ thống để đảm bảo tốc độ tìm kiếm tối ưu. 
+2. Kĩ thuật phân loại, tìm kiếm ảnh 
+2.1. Phân cụm K-means + Inverted File Index (IVF) 
+a. K-means 
+Phân cụm K-Means là một thuật toán học máy không giám sát có nhiệm vụ phân 
+chia một tập dữ liệu gồm N phần tử thành K cụm rời rạc. Thuật toán hoạt động dựa 
+trên nguyên tắc tối thiểu hóa tổng khoảng cách từ các điểm dữ liệu đến tâm của cụm 
+(centroid) chứa nó. Trong bài toán xử lý ảnh, K-Means sẽ gom các bức ảnh cá có các 
+vector đặc trưng tương đồng lại với nhau. 
+Trong các hệ thống truy xuất ảnh dựa trên nội dung, nếu áp dụng phương pháp quét 
+tuyến tính (brute-force), hệ thống phải so sánh ảnh truy vấn với toàn bộ N bức ảnh 
+trong cơ sở dữ liệu. Độ phức tạp tính toán sẽ là O(N), khiến hệ thống bị quá tải và 
+phản hồi chậm khi CSDL lên đến hàng chục ngàn bức ảnh. 
+Bằng cách chia N dữ liệu thành K cụm, số phép tính khoảng cách giảm từ O(N) xuống 
+chỉ còn O(K + N / K). Hệ thống hoạt động tốt theo thời gian thực ngay cả với CSDL 
+lớn. 
+- Ưu điểm: 
++ Tốc độ truy vấn nhanh: Giảm độ phức tạp từ O(N) xuống còn O(K + N / K). 
++ Phù hợp với vector nhiều chiều: Hoạt động ổn định trên các vector đặc 
+trưng có số chiều rất lớn. 
++ Dễ dàng mở rộng và cập nhật: Khi có thêm ảnh cá mới vào CSDL, chỉ cần 
+tính khoảng cách đến các tâm cụm để xếp ảnh vào cụm tương ứng mà không 
+cần phải huấn luyện lại toàn bộ mô hình từ đầu. 
+- Nhược điểm: 
++ Đánh đổi độ chính xác: Có một xác suất nhỏ ảnh tương đồng nhất lại nằm ở 
+rìa của một cụm lân cận khác, dẫn đến việc bỏ sót. 
++ Chi phí huấn luyện ban đầu: Thuật toán K-Means tốn khá nhiều thời gian để 
+hội tụ khi khởi tạo ban đầu trên ma trận dữ liệu lớn, đặc biệt khi chạy nhiều 
+lần (n_init=10) để lấy kết quả tối ưu. 
+b. Inverted File Index (IVF) 
+IVF là một cấu trúc dữ liệu dạng từ điển, dùng để ánh xạ từ một định danh cụm ra 
+danh sách các phần tử thuộc cụm đó (cluster_id: [image_id]). Kỹ thuật này tương tự 
+như mục lục ở cuối các cuốn sách, giúp hệ thống tra cứu ngay lập tức các phần tử 
+trong một cụm mà không cần duyệt qua toàn bộ cơ sở dữ liệu. 
+Minh họa: 
+JSON 
+{ 
+​
+0: ['acanthopagrus_berda_1', 'caranx_melampygus_2', 'lutjanus_sebae_1'], 
+​
+1: ['oxymonacanthus_longirostris_2', 'paraluteres_prionurus_3'] 
+} 
+Quá trình áp dụng K-Means + IVF trên hệ thống được chia làm 2 giai đoạn: 
+Giai đoạn 1: Lập chỉ mục (Offline): 
+- Thu thập vector: Nạp toàn bộ vector đặc trưng từ cơ sở dữ liệu (từ file features.pkl). 
+- Khởi tạo K-Means: Thiết lập số lượng cụm K tự động (mặc định K = max(5, min(50, 
+√(N/2))) . 
++ Phân cụm: Thuật toán tự động lặp lại việc tìm các tâm điểm và gán các 
+vector vào tâm gần nhất cho đến khi hội tụ. Cập nhật vị trí của K tâm cụm. 
++ Xây dựng IVF: Duyệt qua nhãn của từng bức ảnh sau khi gom cụm. Ánh xạ 
+định danh của bức ảnh (Image_ID) vào một danh sách thuộc quản lý của cụm 
+tương ứng để tạo thành chỉ mục ngược. 
++ Lưu trữ: Xuất file ma trận tâm cụm (kmeans_model.pkl) và chỉ mục ngược 
+(ivf_index.pkl) vào bộ nhớ vật lý. 
+Giai đoạn 2: Tìm kiếm (Online): 
+- Trích xuất đặc trưng: Rút trích vector đặc trưng của ảnh đầu vào cần tìm kiếm. 
+- Định tuyến: Đo khoảng cách từ vector truy vấn đến K tâm cụm. 
+- Lựa chọn cụm: Chọn ra tâm cụm có khoảng cách nhỏ nhất. Tra cứu chỉ mục 
+ngược để xuất ra danh sách các Image_ID ứng viên nằm trong các cụm đó. 
+- So sánh: Áp dụng thuật toán KNN để tính khoảng cách Cosine chỉ trên nhóm 
+ứng viên vừa được trích rút. 
+- Sắp xếp kết quả: Trả về 5 bức ảnh có độ tương đồng cao nhất làm kết quả cuối 
+cùng. 
+2.2. K-nearest neighbors (KNN) 
+KNN (K-Nearest Neighbors) là một trong những thuật toán học máy đơn giản 
+nhất được sử dụng nhiều trong khai phá dữ liệu và nhận dạng mẫu. 
+Khi training, thuật toán này không học một điều gì từ dữ liệu, mọi tính toán được 
+thực hiện khi nó cần   tìm kiếm hoặc dự đoán kết quả của điểm dữ liệu mới. 
+- Ưu điểm: 
++ Độ phức tạp tính toán của quá trình training là bằng 0. 
++ Việc đối chiếu và tìm kiếm kết quả của dữ liệu mới rất đơn giản, trực quan 
+qua các độ đo khoảng cách. 
++ Không cần giả sử về phân phối của các tập dữ liệu. 
+- Nhược điểm: 
++ KNN là một thuật toán mà mọi tính toán đều nằm ở khâu tìm kiếm (test). 
+Nếu dùng phương pháp quét tuyến tính (brute-force), việc tính khoảng cách 
+tới từng điểm dữ liệu trong CSDL sẽ tốn nhiều thời gian. 
++ Việc phải nạp và lưu toàn bộ ma trận dữ liệu (features.pkl) trong bộ nhớ 
+RAM cũng ảnh hưởng tới hiệu năng khi CSDL quá lớn. 
+- Các bước trong KNN áp dụng cho tìm kiếm: 
++ Ta có D là tập các vector hình ảnh trong CSDL (hoặc tập ứng viên đã lọc 
+qua IVF) và A là vector của ảnh truy vấn. 
++ Đo khoảng cách từ vector A đến tất cả các vector dữ liệu trong tập D. 
++ Sắp xếp danh sách dựa trên khoảng cách từ nhỏ đến lớn. 
++ Kiểm tra danh sách và lấy ra K bức ảnh có khoảng cách ngắn nhất. 
+Trong hệ thống truy xuất ảnh dựa trên nội dung (CBIR), tham số K đại diện cho số 
+lượng kết quả tương đồng nhất cần hiển thị. Vì vậy, hệ thống chọn K = 5. 
+2.3. Truy xuất ảnh dựa trên nội dung (CBIR) 
+Bản chất cốt lõi của việc truy xuất ảnh là so khớp vector (Vector Matching). Vì 
+mỗi bức ảnh trong CSDL đã được số hóa thành các vector đặc trưng, việc tìm ảnh 
+giống nhau đồng nghĩa với việc tìm các vector có khoảng cách gần nhau nhất trong 
+không gian đa chiều. 
+Do vector HOG có kích thước rất lớn là 6084 chiều, trong khi vector HSV Histogram 
+(1024 chiều), LBP Texture (256 chiều), Hu Moments (7 chiều) và Color Moments (9 
+chiều) chênh lệch nhau rất nhiều. Nếu chỉ kết hợp các vector trực tiếp, quá trình tính 
+toán khoảng cách sẽ bị chi phối hoàn toàn bởi vector HOG. Các đặc trưng về màu sắc 
+và kết cấu bề mặt vảy cá sẽ bị lu mờ, làm giảm giá trị của hệ thống. 
+Vì vậy, ta cần có cơ chế kết hợp vector (Feature Fusion): 
+Bước 1: Đồng bộ không gian chuẩn hóa 
+- Đối với Hu Moments: Do các giá trị mô-men gốc rất nhỏ (thường ở mức 10⁻⁷), 
+hệ thống áp dụng phép biến đổi Logarit (Log-transform) để khuếch đại và ổn định 
+thang đo. 
+- Đối với Color Moments: Do 3 chỉ số thống kê (Mean, Standard Deviation, 
+Skewness) có biên độ dao động hoàn toàn khác nhau, hệ thống áp dụng chuẩn hóa 
+Min-Max để đưa tất cả về khoảng [0, 1]. 
+- Chuẩn hóa đồng bộ: Đảm bảo tất cả các vector thành phần đều được đưa về cùng 
+một hệ quy chiếu là chuẩn hóa L2 (L2 Normalization). Điều này giúp chuẩn hóa 
+biên độ dữ liệu để khoảng cách sinh ra từ các vector này sẽ có cùng một thang đo 
+đồng nhất. 
+Bước 2: Gán trọng số đặc trưng (Weighted Scaling) 
+Đưa vào các tham số để kiểm soát mức độ đóng góp của hình dạng, màu sắc và 
+kết cấu vào kết quả tìm kiếm cuối cùng. Điều kiện là tổng trọng số phải bằng 1. 
+Để hệ thống vừa nhận diện được cấu trúc đường viền/hình dạng cá (đặc biệt quan 
+trọng với background đa dạng), vừa phân biệt được các dải màu, kết cấu vảy và hình 
+học bất biến, ta thiết lập các trọng số α (HOG), β (HSV), γ (LBP), δ (Hu Moments), ε 
+(Color Moments): 
+V(Fusion) = α.V(HOG) + β.V(HSV) + γ.V(LBP) + δ.V(Hu) + ε.V(CM) 
+Bước 3: Nối vector và chuẩn hóa tổng hợp 
+Ghép nối các vector đã được hiệu chỉnh trọng số thành một vector tổng hợp 7380 
+chiều đại diện cho bức ảnh: 
+V_Fusion = [V'_HOG, V'_HSV, V'_LBP, V'_Hu, V'_CM] 
+Để tối ưu hóa cho thuật toán KNN, việc chuẩn hóa L2 thêm một lần nữa trên 
+vector tổng hợp đảm bảo rằng thuật toán tính khoảng cách sẽ hoạt động trên một mặt 
+cầu đơn vị, giúp kết quả xếp hạng độ tương đồng chính xác hơn. 
+- Tính độ tương đồng: 
++ Độ tương đồng Cosine (Cosine Similarity): Đo góc giữa hai vector, bỏ qua độ 
+lớn của chúng. Việc sử dụng độ tương đồng Cosine giúp hệ thống đánh giá sự 
+tương đồng dựa trên tỷ lệ phân bố của các đặc trưng, loại bỏ hoàn toàn các sai số 
+do sự chênh lệch kích thước cá, góc chụp hoặc sự thay đổi cường độ ánh sáng dưới 
+nước gây ra. Giá trị khoảng cách càng nhỏ (góc càng hẹp), hai bức ảnh càng giống 
+nhau. 
+           ​
+               ​
+d(A, B) = 1 - (A ⋅ B) / (||A|| × ||B||) 
++ Khoảng cách Euclid (Euclidean Distance): Đo khoảng cách hình học theo đường 
+thẳng giữa hai vector trong không gian 7380 chiều. Thuật toán sẽ tính tổng bình 
+phương độ lệch của từng chiều đặc trưng, sau đó lấy căn bậc hai. 
+d(A, B) = √[ Σ (Ai - Bi)² ] ​
+ 
+ 
++ Giao hoán Biểu đồ (Histogram Intersection): Đo lường phần chồng lấn giữa hai 
+vector. Thuật toán tìm giá trị nhỏ nhất tại từng chiều (bin) của 2 vector rồi cộng 
+tổng lại. Kỹ thuật này đặc biệt phù hợp và hiệu quả khi người dùng muốn ưu tiên 
+so sánh dựa trên các đặc trưng phân bố màu sắc (HSV Histogram). 
+d(A, B) = 1 - Σ min(Ai, Bi) 
+Chương IV: Xây dựng hệ thống nhận dạng và tìm kiếm ảnh 
+1.Sơ đồ khối của hệ thống 
+ 
+2.Quy trình thực hiện 
+Dựa vào sơ đồ khối, hệ thống hoạt động với 12 bước chính được chia làm 2 giai 
+đoạn: 
+Giai đoạn 1: Xây dựng Cơ sở dữ liệu 
+Đây là giai đoạn chạy ngầm từ trước, xử lý dữ liệu lớn để tạo hệ thống "tri thức" cho 
+phần mềm. 
+1.​ Đọc toàn bộ ảnh, chuẩn hóa kích thước về thống nhất 224x224 pixels. 
+2.​ Biến đổi ảnh từ không gian màu RGB ban đầu sang dạng Grayscale (ảnh xám) 
+và HSV 
+3.​ Áp dụng 5 thuật toán (HOG, LBP, Hu Moments, HSV Histogram, Color 
+Moments) để quét và bóc tách các đặc trưng về hình dáng, vân vảy và màu sắc 
+từ các bản sao Grayscale/HSV. 
+4.​ Nén các đặc trưng vừa trích xuất thành một mảng số duy nhất đại diện cho bức 
+ảnh. Đồng thời, tên loài cá và đường dẫn (Metadata) cũng được trích xuất. 
+5.​ Phân cụm K-Means + IVF: Gom tất cả các Vector của toàn bộ tập dữ liệu đưa 
+vào thuật toán Machine Learning K-Means. Thuật toán này nhóm các Vector 
+giống nhau lại thành từng cụm (Cluster), đồng thời tạo ra một bảng mục lục tra 
+cứu Inverted File Index (IVF). 
+6.​ Bước cuối của giai đoạn 1 là lưu trữ vĩnh viễn dữ liệu. Ma trận Vector và cụm 
+K-Means được lưu vào tệp nhị phân Pickle, còn Metadata được lưu vào cơ sở 
+dữ liệu quan hệ SQLite. 
+Giai đoạn 2: Truy vấn tìm kiếm 
+7.​ Ảnh truy vấn: Người dùng tải lên ứng dụng một bức ảnh cần tìm kiếm. 
+8.​ Tiền xử lý ảnh: Ứng dụng tự động ép bức ảnh về kích thước 224x224 và 
+chuyển hệ màu (Grayscale, HSV) tương tự như Bước 2. 
+9.​ Trích rút đặc trưng: Bức ảnh tiếp tục bị quét qua 5 màng lọc thuật toán y hệt 
+như Bước 3. 
+10.​Vector đặc trưng: Quá trình quét trả về một Vector 7380 chiều. Đây là "DNA" 
+duy nhất của bức ảnh truy vấn dùng để mang đi so sánh. Tới bước này, file ảnh 
+vật lý không còn được dùng đến nữa. 
+11.​Tìm cụm gần nhất: Hệ thống mang Vector này đưa vào mô hình K-Means (đã 
+tạo ở Bước 5) để đối chiếu tâm cụm. Mục đích là xem ảnh truy vấn này thuộc 
+cụm số mấy. Quá trình này khoanh vùng và loại bỏ hàng ngàn bức ảnh không 
+liên quan, giúp tốc độ siêu nhanh. 
+12.​Tính độ tương đồng và Trả các ảnh tương đồng: Lấy các Vector trong CSDL 
+thuộc về cụm vừa khoanh vùng ra, thực hiện phép toán đo lường khoảng cách 
+(như Cosine Similarity) với Vector truy vấn. Lọc ra 5 Vector có điểm số cao 
+nhất, tra ngược vào SQLite để lấy tên loài cá và xuất kết quả (Top 5) ra màn 
+hình hiển thị. 
+3.Các bước trung gian 
+Cấu trúc file của hệ thống: 
+ 
+- Các thư mục: 
+        ​ + dataset: Chứa dữ liệu các ảnh cá được sưu tầm, đóng vai trò là tập đầu vào 
+(input) để trích xuất đặc trưng và đưa vào cơ sở dữ liệu. 
+        ​ + core: Thư mục lõi chứa toàn bộ mã nguồn Python (.py), triển khai các thuật 
+toán xử lý và các giai đoạn thực thi trong sơ đồ khối của hệ thống CBIR. 
++ database: Thư mục lưu trữ cơ sở dữ liệu SQLite và các tệp tin nhị phân (.pkl) 
+sinh ra trong quá trình hệ thống hoạt động. Bao gồm: danh sách các ma trận vector đặc 
+trưng (features.pkl), thông tin các cụm K-Means (kmeans_model.pkl) và danh sách 
+chỉ mục ngược (ivf_index.pkl). 
+- Files: 
++ db_connection.py: Quản lý các giao tiếp với cơ sở dữ liệu. Tệp này chứa các 
+hàm chịu trách nhiệm thiết lập kết nối và khởi tạo các bảng siêu dữ liệu (Metadata) 
+cần thiết trên nền tảng SQLite. 
++ feature_extractor.py: Đảm nhận vai trò phân tích và xử lý hình ảnh cốt lõi. Chứa 
+các hàm tiền xử lý, chiết xuất các nhóm đặc trưng rời rạc bao gồm: HOG (hình dạng), 
+HSV Histogram (phân phối màu), LBP (kết cấu vân vảy), Hu Moments (hình thái học 
+vĩ mô), Color Moments (thống kê màu sắc). Cuối cùng, module này thực hiện dung 
+hợp (Feature Fusion) theo bộ trọng số tối ưu để tạo thành một vector đặc trưng tổng 
+hợp đại diện cho bức ảnh. 
++ indexer.py: Xử lý logic lưu trữ và lập chỉ mục tĩnh. Hàm có nhiệm vụ quét toàn 
+bộ thư mục ảnh dataset/, đẩy các siêu dữ liệu (tên tệp, tên loài, đường dẫn vật lý) lên 
+SQLite và lưu trữ ma trận vector đặc trưng vào tệp features.pkl. 
++ cluster_indexer.py: Thực thi các thuật toán học máy không giám sát. Chứa các 
+hàm thực hiện phân mảnh không gian vector bằng thuật toán phân cụm K-Means và 
+cấu trúc hóa dữ liệu qua danh sách chỉ mục ngược (IVF - Inverted File Index), sau đó 
+kết xuất mô hình ra các tệp kmeans_model.pkl và ivf_index.pkl nhằm giảm thiểu thời 
+gian quét tuyến tính. 
++ searcher.py: Module truy vấn cốt lõi. Chứa các thuật toán tìm kiếm và xếp hạng 
+ảnh tương đồng dựa trên khoảng cách vector (Cosine Similarity). Module này tích hợp 
+logic tra cứu hai giai đoạn: tìm cụm K-Means gần nhất trước khi rà soát KNN cục bộ.​
+      + evaluate_cbir.py: Module đánh giá độ chính xác của hệ thống. Chứa các hàm 
+tính toán các thang đo chuẩn quốc tế như Top-1 Accuracy, Precision@K và MAP 
+(Mean Average Precision) trên tập dữ liệu nhằm kiểm định hiệu năng truy xuất của 
+các bộ trọng số.  
++ app.py: Tệp tin chạy ứng dụng chính. Chứa các hàm khởi tạo giao diện người 
+dùng đồ họa (GUI) bằng Tkinter và điều phối dòng chảy dữ liệu (data flow) từ lúc 
+nhận ảnh truy vấn (query) đến khi trực quan hóa biểu đồ và trả về danh sách Top 5 kết 
+quả hiển thị. 
+3.1. Trích xuất hình ảnh đặc trưng 
+Quá trình trích xuất đặc trưng đóng vai trò cốt lõi trong việc biểu diễn nội dung 
+hình ảnh dưới dạng toán học. Giai đoạn này được thực hiện qua các bước xử lý sau: 
+3.1.1. Tiền xử lí ảnh 
+- Hàm read_image(file_path): Khởi tạo quá trình đọc ảnh từ ổ cứng, chuyển đổi 
+hệ màu mặc định sang không gian màu chuẩn RGB. Kích thước hình ảnh được chuẩn 
+hóa đồng nhất về ma trận 224x224 pixel. 
+- Hàm rgb_to_grayscale(img_rgb): Đảm nhận việc chuyển đổi hệ màu từ RGB 
+sang ảnh mức xám (Grayscale). 
+- Hàm rgb_to_hsv(img_rgb): Đảm nhận việc chuyển đổi hệ màu từ RGB sang 
+không gian màu HSV. 
+ 
+3.1.2. Trích xuất các đặc trưng ảnh 
++ Hàm extract_hog_features(img_gray): Tính toán đặc trưng HOG của một ảnh 
+xám. Đầu vào sẽ là một ảnh xám và trả về một vector đặc trưng HOG tương ứng với 
+ảnh đó dưới dạng một mảng. 
+Quá trình tính toán đặc trưng HOG được thực hiện bằng cách sử dụng hàm hog() của 
+module feature trong thư viện scikit-image và cung cấp các tham số để cấu hình quá 
+trình tính toán, bao gồm: số lượng orientations=9, kích thước ô pixel (16×16), số 
+lượng ô trong mỗi khối (2×2), chuẩn hóa khối bằng norm L2-Hys. Cuối cùng, hàm trả 
+về vector đặc trưng HOG như một mảng đã được chuẩn hóa L2, có độ dài xấp xỉ 
+6.084 chiều. 
+ 
++ Hàm extract_hsv_histogram(img_hsv, bins=(16, 8, 8)): Tính toán histogram 
+của một ảnh đầu vào dựa trên kênh màu HSV và khoảng giá trị. Hàm này nhận vào 
+các tham số: img_hsv (ảnh đầu vào định dạng HSV) và bins (khoảng giá trị cho từng 
+kênh màu H, S, V). 
+Quá trình tính histogram được thực hiện bằng cách sử dụng hàm cv2.calcHist() trên 
+toàn bộ ảnh (không dùng mask) với cấu hình bins=(H:16, S:8, V:8), cho ra histogram 
+3 chiều. Vector được làm phẳng (flatten) thành mảng 1.024 chiều. Cuối cùng, hàm trả 
+về histogram tính được dưới dạng một mảng được chuẩn hóa bằng norm L1. 
+ 
++ Hàm extract_lbp_features(img_gray, radius=1): Tính toán histogram LBP 
+của một ảnh đầu vào dựa trên ảnh xám. Hàm này nhận vào các tham số: img_gray 
+(ảnh xám) và radius (bán kính dùng để xét các pixel lân cận). 
+Quá 
+trình 
+tính 
+histogram 
+được 
+thực 
+hiện 
+bằng 
+cách 
+sử 
+dụng 
+hàm 
+local_binary_pattern(img_gray, n_points, radius, method='default') của thư viện 
+skimage.feature với tham số lần lượt là ảnh xám đầu vào, số điểm ảnh xung quanh 
+(n_points = 8×radius), và bán kính quét từ điểm ảnh. Tiếp theo, ảnh LBP (mỗi pixel 
+trong ảnh đầu ra chứa giá trị LBP) được tính histogram cố định 256 bins. Phân tích 
+trên bộ dữ liệu thực tế cho thấy Laplacian Variance của ảnh cá đạt tới 2.303, chứng tỏ 
+kết cấu vảy rất phức tạp và LBP bắt được đặc trưng này rất tốt. Cuối cùng, hàm trả về 
+histogram tính được dưới dạng một mảng 256 chiều được chuẩn hóa bằng norm L1. 
+ 
++ Hàm extract_hu_moments(img_gray): Trích xuất đặc trưng hình dạng toàn 
+cục. Hàm này nhận tham số đầu vào là img_gray (ảnh xám). 
+Quá trình trích xuất đặc trưng được thực hiện bằng cách sử dụng hàm cv2.moments() 
+để chuyển hóa ảnh xám thành một cấu trúc từ điển chứa các giá trị mômen không 
+gian, đại lượng đo lường sự phân bố khối lượng của các pixel trên hình. Tiếp theo, ta 
+sử dụng hàm cv2.HuMoments() để tạo ra 7 moment hình dạng bất biến với phép tịnh 
+tiến, phép xoay và tỷ lệ thu phóng. Phân tích dữ liệu thực tế cho thấy tỷ lệ w/h của cá 
+dao động từ 0.31 đến 2.43 (cá bơi nghiêng, khoảng cách chụp khác nhau) – Hu 
+Moments xử lý được sự biến động này. 
+Do các giá trị Hu Moments thô thường rất nhỏ (10⁻⁷ đến 10⁻¹²), hệ thống khó thể đo 
+lường chính xác. Ta chuyển hóa dữ liệu thông qua phép biến đổi Logarit 
+(−sign(h)×log₁₀(|h|+ε)), giúp thu hẹp biên độ dao động của các con số về một khoảng 
+ổn định, đồng thời giữ nguyên tính chất của hình học gốc. Cuối cùng, hàm trả về 
+vector 7 chiều được chuẩn hóa L2 để nối ghép. 
+ 
++ Hàm extract_color_moments(img_hsv): Trích xuất đặc trưng thống kê màu sắc. 
+Hàm này nhận tham số đầu vào là img_hsv (ảnh định dạng HSV). 
+Quá trình trích xuất được thực hiện bằng cách tính 3 thống kê trên từng kênh H, S, V: 
+Mean (giá trị trung bình), Standard Deviation (độ lệch chuẩn) và Skewness (độ lệch 
+phân phối – dương/âm). Kết quả là vector 9 chiều (3 thống kê × 3 kênh). Color 
+Moments bổ sung cho HSV Histogram: trong khi histogram mô tả phân phối tần suất 
+màu sắc, Color Moments nắm bắt thống kê tổng thể ổn định hơn với biến đổi ánh sáng 
+môi trường nước. Vector được chuẩn hóa min-max về [0,1] rồi chuẩn hóa L2 để chuẩn 
+bị kết hợp. 
+ 
++ Hàm feature_fusion(): Kết hợp vector đặc trưng của ảnh dựa trên các vector 
+thuộc tính được trích xuất từ HOG, HSV Histogram, LBP, Hu Moments và Color 
+Moments. Hàm này nhận vào các tham số: hog_vec, hsv_vec, lbp_vec, hu_vec, 
+cm_vec (các vector đặc trưng tương ứng) cùng các trọng số α, β, γ, δ, ε. 
+Quá trình kết hợp vector đặc trưng được thực hiện bằng cách chuẩn hóa L2 từng 
+vector thành phần, sau đó gán trọng số cho mỗi vector: α=0.75 cho HOG (hình dạng – 
+quan trọng nhất, được xác nhận bằng grid-search), β=0.08 cho HSV Histogram (màu 
+sắc), γ=0.07 cho LBP (kết cấu vảy), δ=0.05 cho Hu Moments (hình dạng tổng thể), 
+ε=0.10 cho Color Moments (thống kê màu ổn định). Cuối cùng, ta nối (concatenate) 
+các vector thuộc tính lại với nhau và hàm trả về vector đặc trưng cuối cùng 7.380 
+chiều (HOG: 6.084 + HSV: 1.024 + LBP: 256 + Hu: 7 + CM: 9) đã được chuẩn hóa 
+norm L2. 
+ 
++ Hàm get_image_features(): Hàm tổng hợp thực hiện tiền xử lý ảnh, trích xuất 
+thuộc tính và tạo vector đặc trưng cho ảnh. Hàm này nhận vào tham số file_path 
+(đường dẫn ảnh đầu vào) và các tham số trọng số đặc trưng. 
+Quá trình tạo vector đặc trưng được thực hiện bằng cách đọc và chuyển đổi ảnh sử 
+dụng các hàm read_image(), rgb_to_grayscale(), rgb_to_hsv(). Sau đó, hàm thực hiện 
+trích xuất đặc trưng cho các thuộc tính sử dụng hàm extract_hog_features(), 
+extract_hsv_histogram(),extract_lbp_features(),extract_hu_moments(), 
+extract_color_moments(). Cuối cùng, hàm kết hợp các vector lại với nhau sử dụng 
+hàm feature_fusion() và trả về vector đặc trưng 7.380 chiều cho ảnh đầu vào, hoặc trả 
+về None nếu có lỗi xảy ra trong quá trình xử lý. 
+ 
+3.2. Phân cụm và đánh chỉ mục ngược 
++ Hàm build_index(): Đây là hàm sử dụng để quét dữ liệu ảnh, thực hiện tạo 
+vector đặc trưng và lưu thông tin ảnh vào CSDL và file vật lý. 
+Đầu tiên, hàm khởi tạo kết nối với SQLite thông qua hàm get_connection() và 
+init_db(), sau đó xóa toàn bộ dữ liệu cũ trong bảng Fish_Metadata để đảm bảo có thể 
+chạy lại mà không bị xung đột khóa chính. Tiếp theo, hàm khởi tạo một từ điển rỗng 
+để chứa vector đặc trưng. 
+Với mỗi ảnh được quét qua trong thư mục dataset/, hàm sẽ thực hiện trích xuất thông 
+tin của ảnh (bao gồm Image_ID là tên file không có đuôi, tên loài cá, đường dẫn tuyệt 
+đối tới ảnh) và thực hiện câu truy vấn INSERT OR REPLACE để lưu thông tin lên 
+CSDL. 
+Sau đó, hàm thực hiện tạo vector đặc trưng của ảnh sử dụng hàm get_image_features() 
+và lưu vector vào từ điển. Từ điển sẽ có cấu trúc: {Image_ID: Vector_đặc_trưng}. Cơ 
+sở dữ liệu được commit sau mỗi 100 ảnh để tránh mất dữ liệu. 
+Cuối cùng, hàm lưu lại thay đổi vào CSDL và lưu từ điển vector ra file vật lý 
+features.pkl bằng thư viện pickle để hệ thống tìm kiếm có thể tái sử dụng mà không 
+phải chạy lại toàn bộ quá trình trích xuất. 
+ 
++ Hàm build_clusters(k=None): Đây là hàm sử dụng để phân cụm các vector đặc 
+trưng của các ảnh trong file features.pkl, từ đó đánh chỉ mục ngược cho mỗi cụm để 
+thuận tiện trong việc truy vấn. Hàm này nhận tham số đầu vào là k, thể hiện cho số 
+cụm được phân ra dựa trên thuật toán K-Means. 
+Đầu tiên, hàm đọc file features.pkl dưới chế độ đọc nhị phân và nạp dữ liệu lên bộ nhớ 
+để tính toán. Dữ liệu từ một tệp nhị phân vật lý được chuyển lại thành một đối tượng 
+từ điển có cấu trúc {Image_ID: Vector_đặc_trưng}. 
+Tiếp theo, hàm sẽ tách ID và vector để tạo 2 mảng riêng biệt đồng bộ về vị trí. Danh 
+sách các vector sẽ được chuyển đổi thành ma trận kích thước 2 chiều N×D, với N là số 
+lượng ảnh và D là số chiều của vector (7.380). Nếu k không được chỉ định, hệ thống 
+tự động tính theo công thức k = max(5, min(50, √(N/2))) và đảm bảo k ≤ N để tránh 
+cụm rỗng. 
+Sau đó, hàm sử dụng thuật toán K-Means để gom N điểm dữ liệu trong không gian D 
+chiều thành k cụm dựa trên độ tương đồng (khoảng cách Euclid) của chúng. Khởi tạo 
+KMeans(n_clusters=k, random_state=42, n_init=10, max_iter=300) với tham số 
+random_state và n_init giúp kết quả phân cụm được cố định và chọn lần khởi tạo tốt 
+nhất qua mỗi lần chạy. Khi huấn luyện thành công, đầu ra thu được mô hình K-Means 
+mang theo hai luồng thông tin: ma trận tọa độ của k tâm cụm (cluster_centers_) và 
+một mảng nhãn phân loại có chiều dài N (labels_), lưu trữ số thứ tự cụm mà mỗi bức 
+ảnh được gắn vào. 
+Tiếp theo, hàm tạo một chỉ mục ánh xạ trực tiếp từ định danh cụm (cluster_id) ra danh 
+sách các bức ảnh thuộc về cụm đó để truy xuất. Khởi tạo dictionary rỗng cho k cụm, 
+duyệt đồng thời qua danh sách Image_ID và mảng labels_ để ghép nối mỗi Image_ID 
+vào cụm tương ứng, tạo ra cấu trúc: {cluster_id: [image_id_1, image_id_2, ...]}. 
+Cuối cùng, hàm lưu kết quả của quá trình phân cụm và lập chỉ mục ra hai file vật lý: 
+kmeans_model.pkl (chứa mô hình K-Means với tọa độ tâm cụm) và ivf_index.pkl 
+(chứa chỉ mục ngược) để hệ thống tìm kiếm có thể tái sử dụng mà không phải chạy lại 
+thuật toán. 
+ 
+  
+3.3. Tìm ảnh tương đồng 
++ Hàm __init__(self): Khởi tạo bộ tìm kiếm bằng cách tải toàn bộ cơ sở dữ liệu và 
+mô hình từ file vật lý lên bộ nhớ. Việc này giúp hệ thống truy xuất dữ liệu theo thời 
+gian thực mà không bị độ trễ do thao tác đọc file lặp lại. 
+Hàm sẽ lần lượt đọc các file vật lý dưới dạng đọc nhị phân, sau đó gắn cho mỗi 
+đối tượng trên bộ nhớ với một file. Danh sách vector đặc trưng sẽ có cấu trúc 
+{Image_ID: Vector_đặc_trưng}; Mô hình K-Means chứa thông tin về tọa độ của K 
+tâm cụm (cluster_centers_); Danh sách chỉ mục ngược sẽ có cấu trúc {Cluster_ID: 
+[Danh_sách_Image_ID]}. Nếu file kmeans_model.pkl và ivf_index.pkl tồn tại, hệ 
+thống sẽ kích hoạt chế độ IVF (use_ivf = True); ngược lại tự động fallback về chế độ 
+KNN Brute-force (use_ivf = False). 
+ 
++ Hàm search(self, query_vector, k=5, metric='cosine', nprobe=3): Nhận 
+vector đặc trưng của bức ảnh truy vấn, sau đó sử dụng kỹ thuật K-Means + IVF để 
+khoanh vùng và đối chiếu, từ đó trả về k ảnh tương đồng nhất. Hàm này nhận tham số 
+đầu vào là vector đặc trưng của ảnh truy vấn, k là số ảnh tương đồng được trả về, 
+metric là độ đo khoảng cách ('cosine', 'euclidean', 'histogram'), nprobe là số cụm lân 
+cận được mở ra để tìm kiếm. 
+Đầu tiên, nếu use_ivf = True, hàm gọi _ivf_candidates() để khoanh vùng ứng viên: 
+chuyển hóa vector ảnh truy vấn thành ma trận 2 chiều kích thước 1×D nhằm tương 
+thích với chuẩn đầu vào của thư viện scikit-learn. Hàm tính khoảng cách Euclid từ 
+vector này đến toàn bộ các tâm cụm, đưa ra một mảng 1D chứa các giá trị khoảng 
+cách, rồi sắp xếp mảng tăng dần và lấy ra chỉ số của nprobe cụm có khoảng cách nhỏ 
+nhất. Với nprobe=3 trên 35 cụm, hệ thống chỉ cần quét khoảng 8.6% dữ liệu thay vì 
+toàn bộ. Nếu use_ivf = False, toàn bộ Image_ID trong features_db là tập ứng viên 
+(chế độ brute-force, độ chính xác 100%). 
+ 
+Tiếp theo, hàm duyệt qua các cụm gần nhất, tra cứu cluster_id trong danh sách chỉ 
+mục ngược để rút danh sách ID ảnh và nối vào danh sách rỗng. Ta ép kiểu qua tập hợp 
+(set) nhằm loại bỏ ID ảnh trùng lặp khi nprobe > 1, sau đó ép ngược lại thành danh 
+sách (list). Danh sách lúc này sẽ chứa Image_ID của các ảnh tiềm năng nhất. 
+Sau đó, hàm tính khoảng cách từ ảnh truy vấn đến từng ảnh ứng viên theo độ đo đã 
+chọn. Hệ thống hỗ trợ 3 độ đo: Cosine, Euclidean và Histogram Intersection . Lưu kết 
+quả dưới dạng tuple (img_id, distance) vào danh sách. 
+Cuối cùng, hàm sắp xếp danh sách tăng dần dựa trên giá trị khoảng cách, lấy k kết quả 
+đầu tiên và gọi hàm _fetch_metadata() để lấy thông tin chi tiết của k bức ảnh đó. 
+ 
++ Hàm _fetch_metadata(self, top_k, metric): Giao tiếp với SQLite để lấy các thông 
+tin dạng văn bản (nhãn loài cá, đường dẫn file ảnh trên ổ cứng) dựa trên danh sách k 
+Image_ID vừa tìm được. Đầu vào sẽ là danh sách tuple chứa cấu trúc (Image_ID, 
+distance) vừa thực hiện ở hàm search(). 
+Đầu tiên, hàm thiết lập kết nối với SQLite thông qua get_connection(), sau đó tách lấy 
+riêng danh sách các Image_ID. Tiếp theo, hàm thực hiện một câu lệnh SELECT duy 
+nhất với mệnh đề IN để truy vấn đồng thời tất cả k ID, thu về kết quả dưới dạng danh 
+sách các dòng dữ liệu. Hàm sẽ chuyển danh sách này thành từ điển trung gian với cấu 
+trúc {Image_ID: {'species': nhãn, 'path': đường dẫn}} giúp việc tra cứu thông tin diễn 
+ra tức thời với độ phức tạp O(1). 
+Cuối cùng, hàm khởi tạo danh sách rỗng, duyệt qua danh sách đầu vào. Với mỗi 
+Image_ID, hàm lấy species và path từ từ điển, tính phần trăm tương đồng (Cosine: 
+(1−distance)×100; Euclidean/Histogram: max(0, 100−distance×50)), rồi đóng gói tất 
+cả thành một từ điển hoàn chỉnh cho mỗi kết quả. Hàm sẽ trả về một danh sách chứa 
+các từ điển gồm đủ 5 trường thông tin: image_id, distance, similarity (%), species và 
+file_path. 
+  
+ 
+V. Kết quả kiểm nghiệm 
+1. Kết quả quá trình tìm kiếm 
+-​
+Với ảnh đầu vào là ảnh của loài có trong dữ liệu (Anampses geographicus): 
+ 
+-​
+Với ảnh đầu vào là ảnh của loài không có trong dữ liệu (Comet): 
+ 
+2. Đánh giá kết quả  
+Việc đánh giá kết quả được thực hiện trên một tập ảnh query ngẫu nhiên lấy từ 
+cơ sở dữ liệu. Với mỗi ảnh đầu vào, hệ thống truy xuất Top-K ảnh tương tự nhất dựa 
+trên vector đặc trưng và so sánh nhãn loài của các ảnh trả về với nhãn thật của ảnh 
+query. Kết quả được tổng hợp bằng các chỉ số Top-1 Accuracy, Precision@1, 
+Precision@3, Precision@5 và MAP@5. 
+ 
+ 
+ 
+ 
+ 
